@@ -19,14 +19,21 @@ This project demonstrates how to build a secure backend for modern web and mobil
 
 🌍 Ready for deployment (Docker or Azure)
 
+
 🏗️ Tech Stack
-Technology	Description
-.NET 8 / .NET 9	Backend framework
-ASP.NET Core Web API	RESTful API
-Entity Framework Core	ORM for data access
-SQL Server	Database
-ASP.NET Core Identity	User & role management
-JWT	Token-based authentication
-Swagger / Swashbuckle	API documentation
+
+.NET 8 / .NET 9 — Backend framework
+
+ASP.NET Core Web API — For building RESTful APIs
+
+Entity Framework Core (EF Core) — Object-relational mapper for database access
+
+SQL Server — Relational database management system
+
+ASP.NET Core Identity — User and role management system
+
+JWT (JSON Web Token) — Secure token-based authentication
+
+Swagger / Swashbuckle — API documentation and testing tool
 
 <img width="770" height="563" alt="image" src="https://github.com/user-attachments/assets/9bae0996-297c-4332-a0fb-f3b43b221f23" />
