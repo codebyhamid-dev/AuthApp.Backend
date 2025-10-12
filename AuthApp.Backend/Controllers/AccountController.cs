@@ -1,6 +1,5 @@
 ﻿using AuthApp.Backend.AuthApp.Backend.Contracts;
 using AuthApp.Backend.AuthApp.Backend.Domain;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
@@ -17,33 +16,32 @@ namespace AuthApp.Backend.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IConfiguration _configuration;
 
-        public AccountController(UserManager<ApplicationUser> userManager,IConfiguration configuration)
+        public AccountController(UserManager<ApplicationUser> userManager, IConfiguration configuration)
         {
             _userManager = userManager;
             _configuration = configuration;
         }
+
         // ✅ Register
-        [HttpPost("Register")]
+        [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterDto registerDto)
         {
-            // ✅ 1. Validate passwords match
             if (registerDto.Password != registerDto.ConfirmPassword)
                 return BadRequest(new { message = "Passwords do not match." });
-            // ✅ 2. Check if email already exists
+
             var existingUser = await _userManager.FindByEmailAsync(registerDto.Email);
             if (existingUser != null)
                 return BadRequest(new { message = "Email is already registered." });
-            // ✅ 3. Create new user
+
             var user = new ApplicationUser
             {
                 Name = registerDto.Name,
                 Email = registerDto.Email,
-                UserName= registerDto.Email // Using email as username
+                UserName = registerDto.Email
             };
-            // ✅ 4. Create user with hashed password
+
             var result = await _userManager.CreateAsync(user, registerDto.Password);
 
-            // ❌ Handle failed registration
             if (!result.Succeeded)
             {
                 return BadRequest(new
@@ -52,42 +50,36 @@ namespace AuthApp.Backend.Controllers
                     errors = result.Errors.Select(e => e.Description)
                 });
             }
-            return Ok(new
-            {
-                message = "User registered successfully.",
-            });
 
+            // ✅ Default assign role "User"
+            await _userManager.AddToRoleAsync(user, "User");
+
+            return Ok(new { message = "User registered successfully." });
         }
 
-        // ✅ LOGIN
-        [HttpPost("Login")]
+        // ✅ Login
+        [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDto loginDto)
         {
             var user = await _userManager.FindByEmailAsync(loginDto.Email);
-
             if (user == null)
                 return Unauthorized(new { message = "Invalid email or password." });
 
             var passwordValid = await _userManager.CheckPasswordAsync(user, loginDto.Password);
-
             if (!passwordValid)
                 return Unauthorized(new { message = "Invalid email or password." });
 
-            // Generate JWT token
-            var token = GenerateJwtToken(user);
-
-            return Ok(new
-            {
-                message = "User Login Successfully!",
-                token
-            });
+            var token = await GenerateJwtToken(user);
+            return Ok(new { message = "User login successful!", token });
         }
 
-        // ✅ PRIVATE: JWT Token Generator
-        private string GenerateJwtToken(ApplicationUser user)
+        // 🔒 Private helper: Generate JWT token
+        private async Task<string> GenerateJwtToken(ApplicationUser user)
         {
             var jwtSettings = _configuration.GetSection("Jwt");
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Key"]!));
+
+            var userRoles = await _userManager.GetRolesAsync(user);
 
             var claims = new List<Claim>
             {
@@ -96,6 +88,9 @@ namespace AuthApp.Backend.Controllers
                 new Claim(ClaimTypes.NameIdentifier, user.Id),
                 new Claim(ClaimTypes.Name, user.UserName!)
             };
+
+            // ✅ Add role claims
+            claims.AddRange(userRoles.Select(role => new Claim(ClaimTypes.Role, role)));
 
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
@@ -109,6 +104,5 @@ namespace AuthApp.Backend.Controllers
 
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
-
     }
 }
