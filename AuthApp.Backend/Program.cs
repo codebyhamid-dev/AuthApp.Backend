@@ -4,52 +4,70 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ============================================
-// ✅ Add services
-// ============================================
+// =============================================
+// ✅ 1. Services Configuration
+// =============================================
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
 
-// ✅ Database + Identity setup
+// ✅ Swagger + JWT Integration
+builder.Services.AddSwaggerGen(options =>
+{ 
+
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        In = ParameterLocation.Header,
+        Description = "Enter JWT token: Bearer <token>",
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "Bearer",
+        BearerFormat = "JWT"
+    });
+
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
+
+// =============================================
+// ✅ 2. Database + Identity
+// =============================================
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
 );
 
-builder.Services.AddIdentityApiEndpoints<ApplicationUser>()
-    .AddEntityFrameworkStores<AppDbContext>()
-    .AddDefaultTokenProviders();
-
-//password configuration
-builder.Services.Configure<IdentityOptions>(options =>
+builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 {
-    options.Password.RequireDigit = true;             // Require at least one digit
-    options.Password.RequireLowercase = true;         // Require at least one lowercase
-    options.Password.RequireUppercase = true;         // Require at least one uppercase
-    options.Password.RequireNonAlphanumeric = true;  // Require at least one special character
-    options.Password.RequiredLength = 8;             // Minimum 8 characters
-    options.Password.RequiredUniqueChars = 1;        // At least 1 unique character
+    options.Password.RequireDigit = true;
+    options.Password.RequireLowercase = true;
+    options.Password.RequireUppercase = true;
+    options.Password.RequireNonAlphanumeric = true;
+    options.Password.RequiredLength = 8;
     options.User.RequireUniqueEmail = true;
-});
+})
+.AddEntityFrameworkStores<AppDbContext>()
+.AddDefaultTokenProviders();
 
-// ✅ Add CORS Policy
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowFrontend", policy =>
-    {
-        policy
-            .WithOrigins("http://localhost:4200") // 👈 Angular dev server
-            .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowCredentials(); // use if frontend sends auth cookies/tokens
-    });
-});
-
-// Add Authentication with JWT
+// =============================================
+// ✅ 3. JWT Authentication
+// =============================================
+var jwtSettings = builder.Configuration.GetSection("Jwt");
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -57,7 +75,6 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
-    var jwtSettings = builder.Configuration.GetSection("Jwt");
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
@@ -71,12 +88,26 @@ builder.Services.AddAuthentication(options =>
         )
     };
 });
+
+// =============================================
+// ✅ 4. CORS Policy
+// =============================================
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.WithOrigins("http://localhost:4200") // Angular dev origin
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+});
+
 var app = builder.Build();
 
-// ============================================
-// ✅ Middleware pipeline
-// ============================================
-
+// =============================================
+// ✅ 5. Middleware
+// =============================================
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -84,15 +115,12 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
-// ✅ Use CORS before Authentication/Authorization
 app.UseCors("AllowFrontend");
+
 
 app.UseAuthentication();
 app.UseAuthorization();
 
-// ✅ Map endpoints
 app.MapControllers();
-app.MapGroup("/api").MapIdentityApi<ApplicationUser>();
 
 app.Run();

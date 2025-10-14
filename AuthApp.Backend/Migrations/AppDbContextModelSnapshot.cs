@@ -90,6 +90,25 @@ namespace AuthApp.Backend.Migrations
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
 
                     b.ToTable("AspNetUsers", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = "c99d818b-93f3-4a10-a4ae-2f60e1dfbd5b",
+                            AccessFailedCount = 0,
+                            ConcurrencyStamp = "4b196ee6-ddd9-48e7-ac9d-6b6b3f19c084",
+                            Email = "admin@authapp.com",
+                            EmailConfirmed = true,
+                            LockoutEnabled = false,
+                            Name = "Super Admin",
+                            NormalizedEmail = "ADMIN@AUTHAPP.COM",
+                            NormalizedUserName = "ADMIN@AUTHAPP.COM",
+                            PasswordHash = "AQAAAAIAAYagAAAAELjg1Igwf3Lmj1rfu1OWTGp2LzvFmzvZiZZiQ99ckJbvVnvXQvmqZCdvQc8daEV/GQ==",
+                            PhoneNumberConfirmed = false,
+                            SecurityStamp = "9a5f78aa-c040-4dfd-ad29-8a4f65ce97da",
+                            TwoFactorEnabled = false,
+                            UserName = "admin@authapp.com"
+                        });
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -117,6 +136,20 @@ namespace AuthApp.Backend.Migrations
                         .HasFilter("[NormalizedName] IS NOT NULL");
 
                     b.ToTable("AspNetRoles", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = "181d6ab1-c6e3-463f-adc2-cad61d3fcfec",
+                            Name = "Admin",
+                            NormalizedName = "ADMIN"
+                        },
+                        new
+                        {
+                            Id = "cb04622c-7bf7-4e16-a558-a8d1881350e2",
+                            Name = "User",
+                            NormalizedName = "USER"
+                        });
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -204,6 +237,13 @@ namespace AuthApp.Backend.Migrations
                     b.HasIndex("RoleId");
 
                     b.ToTable("AspNetUserRoles", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            UserId = "c99d818b-93f3-4a10-a4ae-2f60e1dfbd5b",
+                            RoleId = "181d6ab1-c6e3-463f-adc2-cad61d3fcfec"
+                        });
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
